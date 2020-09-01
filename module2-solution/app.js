@@ -1,99 +1,88 @@
 (function () {
 'use strict';
 
-angular.module('NarrowItDownApp', [])
-.controller('NarrowItDownController', NarrowItDownController)
-.service('MenuSearchService', MenuSearchService)
-.constant('ApiBasePath', "https://davids-restaurant.herokuapp.com")
-.directive('foundItems',foundItems);
+angular.module('ShoppingListCheckOff', [])
+.controller('ToBuyController', ToBuyController )
+.controller('AlreadyBoughtController', AlreadyBoughtController)
+.service('ShoppingListCheckOffService', ShoppingListCheckOffService);
 
-NarrowItDownController.$inject = ['MenuSearchService','$scope','$filter'];
-function NarrowItDownController(MenuSearchService,$scope,$filter) {
-  var menu = this;
-
-
-  menu.data="";
-  menu.found=[];
-
-  var promise=MenuSearchService.getMatchedMenuItems();
-  promise.then(function(response){
-    console.log(response.data);
-    menu.data=response.data;
-
-  })
-  .catch(function(error){
-    console.log("error occured!");
-  });
-  menu.list=function(){
-    //console.log(menu.data['menu_items']);
-
-    var list=menu.data['menu_items'];
-    var Founded=[];
-
-    for (var i=0;i<list.length;i++)
-    {
-      //console.log(list[i]['description']);
-      var x=""+list[i]['description']+"";
-      var y=""+$scope.searchTerm+"";
-      //console.log(x,y);
-      if(x.includes(y))
-      {
-        //console.log("true");
-        //console.log(list[i]);
-        Founded.push(list[i]);
-
-      }
-
-
-    }
-    menu.found=Founded;
-    console.log(menu.found);
+ToBuyController.$inject = ['ShoppingListCheckOffService'];
+function ToBuyController(ShoppingListCheckOffService) {
+  var itemsList = this;
+  itemsList.errorMessage="";
+  itemsList.items = ShoppingListCheckOffService.getToBuyItems();
+  if(itemsList.items.length!=0)
+  itemsList.errorMessage= function(){
+    if(itemsList.items.length==0)
+    return 1;
+    else return 0;
 
   }
-  menu.removeItem=function(itemIndex){
-    menu.found.splice(itemIndex,1);
+
+  //itemsList.errorMessage=ShoppingListCheckOffService.getErrorMessageForToBuyItems();
+  console.log(itemsList.errorMessage());
+  itemsList.removeItem=function(itemIndex){
+    ShoppingListCheckOffService.removeItem(itemIndex);
   };
-  menu.errorMessage= function(){
-    if(menu.found.length==0)
+
+}
+
+
+AlreadyBoughtController.$inject = ['ShoppingListCheckOffService'];
+function AlreadyBoughtController(ShoppingListCheckOffService) {
+  var bought = this;
+
+  bought.items = ShoppingListCheckOffService.getAlreadyBoughtItems();
+  bought.errorMessage= function(){
+    if(bought.items.length==0)
     return 1;
     return 0;
 
   };
+  //console.log(bought.items);
 
 }
 
-MenuSearchService.$inject = ['$http', 'ApiBasePath'];
-function MenuSearchService($http, ApiBasePath) {
+
+function ShoppingListCheckOffService() {
   var service = this;
-  var foundItems=[];
 
+  // List of shopping items
+  var toBuyItems = [{name:"chips",quantity:"2 bags"},{name:'cookies',quantity:'3 bags'},{name:'lays',quantity:'8 bags'},{name:'cola',quantity:'2 bottles'},{name:'pepsi',quantity:'7 bottles'}];
+  var alreadyBoughtItems=[];
 
-  service.getMatchedMenuItems = function () {
+  service.addItem = function (itemName, quantity) {
+    var item = {
+      name: itemName,
+      quantity: quantity
+    };
+    items.push(item);
+  };
 
-    var response= $http({
-      method: "GET",
-      url: (ApiBasePath + "/menu_items.json"),
+  service.getToBuyItems = function () {
+    return toBuyItems;
+  };
 
-    });
-    return response;
+  service.getAlreadyBoughtItems = function () {
+    return alreadyBoughtItems;
+  };
 
+  // service.getErrorMessageForToBuyItems=function(){
+  //   if(toBuyItems.length==0)
+  //   return true;
+  // };
+  //
+  // service.getErrorMessageForBoughtItems=function(){
+  //   if(alreadyBoughtItems.length==0)
+  //   return true;
+  // };
+
+  service.removeItem=function(itemIndex){
+    alreadyBoughtItems.push(toBuyItems[itemIndex]);
+    toBuyItems.splice(itemIndex,1);
+    //console.log(service.getErrorMessageForToBuyItems(),service.getErrorMessageForBoughtItems());
 
   };
 }
-
-foundItems.$inject=[];
-function foundItems(){
-  var ddo={
-    templateUrl: 'listItem.html',
-    scope:{
-      listFound: '<foundedItems',
-      remove:'=onRemove'
-
-    }
-  };
-  return ddo;
-}
-
-
 
 })();
